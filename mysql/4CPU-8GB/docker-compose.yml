@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+  mysql:
+    image: docker.io/mysql:8.0.34
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=0000
+      - MYSQL_USER=rooftop
+      - MYSQL_PASSWORD=rooftop-pwd
+    ports:
+      - "3306:3306"
+    volumes:
+      - persistence_data:/mysql
+      - ./my.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+
+volumes:
+  persistence_data:
+    driver: local
