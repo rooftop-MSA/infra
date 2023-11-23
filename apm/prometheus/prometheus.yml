@@ -16,3 +16,9 @@ scrape_configs:
     metrics_path: "/actuator/prometheus"
     static_configs:
       - targets: [ "192.168.35.190:8080" ]
+
+  - job_name: "mysql"
+    static_configs:
+      - targets: [ "192.168.35.237:9104" ]
+        labels:
+          name: "rdbms-1"

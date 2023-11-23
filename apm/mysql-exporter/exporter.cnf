@@ -1,0 +1,4 @@
+[client]
+host=host.docker.internal
+user=exporter
+password=XXXXXXXX
