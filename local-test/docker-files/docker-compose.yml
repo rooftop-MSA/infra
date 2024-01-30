@@ -1,0 +1,157 @@
+services:
+  db:
+    image: "mysql:8.3.0"
+    container_name: db
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root@1234
+      TZ: UTC
+    volumes:
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - rooftop_local
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512MB
+
+  redis:
+    image: "docker.io/bitnami/redis:7.2"
+    container_name: redis
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_AOF_ENABLED=yes
+      - REDIS_RDB_ENABLED=no
+    ports:
+      - "6379:6379"
+    networks:
+      - rooftop_local
+    depends_on:
+      - db
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512MB
+
+  identity-server:
+    container_name: identity-server
+    build:
+      context: .
+      dockerfile: IdentityDockerfile
+      args:
+        SERVER_PORT: 8081
+        DB_URL: db
+        DB_PORT: 3306
+        DB_USERNAME: root
+        DB_PASSWORD: root@1234
+    ports:
+     - "8081:8081"
+    networks:
+     - rooftop_local
+    restart: always
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+
+  shop-server:
+    container_name: shop-server
+    build: 
+     context: .
+     dockerfile: ShopDockerfile
+     args:
+      SERVER_PORT: 8082
+      DB_URL: db
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: root@1234
+      IDENTITY_SERVER_URI: http://identity-server:8081
+      DISTRIBUTED_TRANSACTION_SERVER_HOST: redis
+      DISTRIBUTED_TRANSACTION_SERVER_PORT: 6379
+      DISTRIBUTED_UNDO_SERVER_HOST: redis
+      DISTRIBUTED_UNDO_SERVER_PORT: 6379
+    ports:
+      - "8082:8082"
+    networks:
+      - rooftop_local
+    restart: always
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+
+  order-server:
+    container_name: order-server
+    build:
+      context: .
+      dockerfile: OrderDockerfile
+      args:
+        SERVER_PORT: 8083
+        DB_URL: db
+        DB_PORT: 3306
+        DB_USERNAME: root
+        DB_PASSWORD: root@1234
+        IDENTITY_SERVER_URI: http://identity-server:8081
+        SHOP_SERVER_URI: http://shop-server:8082
+        PAY_SERVER_URI: http://pay-server:8084
+        DISTRIBUTED_TRANSACTION_SERVER_HOST: redis
+        DISTRIBUTED_TRANSACTION_SERVER_PORT: 6379
+        DISTRIBUTED_UNDO_SERVER_HOST: redis
+        DISTRIBUTED_UNDO_SERVER_PORT: 6379
+    ports: 
+      - "8083:8083"
+    networks:
+      - rooftop_local
+    restart: always
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+
+  pay-server:
+    container_name: pay-server
+    build:
+      context: .
+      dockerfile: PayDockerfile
+      args:
+        SERVER_PORT: 8084
+        DB_URL: db
+        DB_PORT: 3306
+        DB_USERNAME: root
+        DB_PASSWORD: root@1234
+        IDENTITY_SERVER_URI: http://identity-server:8081
+        ORDER_SERVER_URI: http://order-server:8083
+        DISTRIBUTED_TRANSACTION_SERVER_HOST: redis
+        DISTRIBUTED_TRANSACTION_SERVER_PORT: 6379
+        DISTRIBUTED_UNDO_SERVER_HOST: redis
+        DISTRIBUTED_UNDO_SERVER_PORT: 6379
+    ports:
+      - "8084:8084"
+    networks:
+      - rooftop_local
+    restart: always
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+
+networks:
+  rooftop_local:
+    driver: bridge

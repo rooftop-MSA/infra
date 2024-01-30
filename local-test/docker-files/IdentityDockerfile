@@ -1,0 +1,25 @@
+FROM openjdk:21
+
+ARG SERVER_PORT
+ARG DB_URL
+ARG DB_PORT
+ARG DB_USERNAME
+ARG DB_PASSWORD
+
+ARG JAR_FILE=./identity-server.jar
+COPY ${JAR_FILE} identity.jar
+
+ENV server_port=${SERVER_PORT} \
+db_url=${DB_URL} \
+db_port=${DB_PORT} \
+db_username=${DB_USERNAME} \
+db_password=${DB_PASSWORD}
+
+ENTRYPOINT  java -jar -Dspring.profiles.active=prod identity.jar \
+--server.port=${server_port} \
+--spring.r2dbc.url="r2dbc:mysql://${db_url}:${db_port}/identity?useUnicode=true&serverTimezone=UTC" \
+--spring.r2dbc.username=${db_username} \
+--spring.r2dbc.password=${db_password} \
+--spring.flyway.url="jdbc:mysql://${db_url}:${db_port}/identity?useUnicode=true&serverTimezone=UTC" \
+--spring.flyway.user=${db_username} \
+--spring.flyway.password=${db_password}

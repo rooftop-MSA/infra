@@ -1,0 +1,47 @@
+FROM openjdk:21
+
+ARG SERVER_PORT
+ARG DB_URL
+ARG DB_PORT
+ARG DB_USERNAME
+ARG DB_PASSWORD
+ARG IDENTITY_SERVER_URI
+ARG SHOP_SERVER_URI
+ARG PAY_SERVER_URI
+ARG DISTRIBUTED_TRANSACTION_SERVER_HOST
+ARG DISTRIBUTED_TRANSACTION_SERVER_PORT
+ARG DISTRIBUTED_UNDO_SERVER_HOST
+ARG DISTRIBUTED_UNDO_SERVER_PORT
+
+ARG JAR_FILE=./order-server.jar
+COPY ${JAR_FILE} order.jar
+
+ENV server_port=${SERVER_PORT} \
+	db_url=${DB_URL} \
+	db_port=${DB_PORT} \
+	db_username=${DB_USERNAME} \
+	db_password=${DB_PASSWORD} \
+	identity_server_uri=${IDENTITY_SERVER_URI} \
+	shop_server_uri=${SHOP_SERVER_URI} \
+	pay_server_uri=${PAY_SERVER_URI} \
+	distributed_transaction_server_host=${DISTRIBUTED_TRANSACTION_SERVER_HOST} \
+  distributed_transaction_server_port=${DISTRIBUTED_TRANSACTION_SERVER_PORT} \
+  distributed_undo_server_host=${DISTRIBUTED_UNDO_SERVER_HOST} \
+  distributed_undo_server_port=${DISTRIBUTED_UNDO_SERVER_PORT}
+
+ENTRYPOINT java -jar -Dspring.profiles.active=prod order.jar \
+--server.port=${server_port} \
+--spring.r2dbc.url="r2dbc:mysql://${db_url}:${db_port}/order?useUnicode=true&serverTimezone=UTC" \
+--spring.r2dbc.username=${db_username} \
+--spring.r2dbc.password=${db_password} \
+--spring.flyway.url="jdbc:mysql://${db_url}:${db_port}/order?useUnicode=true&serverTimezone=UTC" \
+--spring.flyway.user=${db_username} \
+--spring.flyway.password=${db_password} \
+--rooftop.server.identity=${identity_server_uri} \
+--rooftop.server.shop=${shop_server_uri} \
+--rooftop.server.pay=${pay_server_uri} \
+--distributed.transaction.host.transaction-server=${distributed_transaction_server_host} \
+--distributed.transaction.port.transaction-server=${distributed_transaction_server_port} \
+--distributed.transaction.host.undo-server=${distributed_undo_server_host} \
+--distributed.transaction.port.undo-server=${distributed_undo_server_port}
+
